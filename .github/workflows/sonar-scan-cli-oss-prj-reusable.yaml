@@ -1,0 +1,46 @@
+name: SonarQube Scan CLI OSS Project Reusable
+
+on:
+  workflow_call:
+    inputs:
+      github_repo_slug:
+        description: 'The GitHub repository slug (e.g., owner/repo)'
+        required: true
+        type: string
+
+jobs:
+  sonarqube-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ inputs.github_repo_slug }}
+          fetch-depth: 0
+
+      - name: Generate SQ project key
+        id: gen-prj-key
+        run: |
+          prefix="sqs-oss-analysis:"
+          key="${prefix}$(echo '${{ inputs.github_repo_slug }}' | sed 's/\//-/g')"
+          echo "key=$key" >> $GITHUB_OUTPUT
+          echo "Generated project key: $key"
+
+      - name: SonarQube analysis
+        uses: SonarSource/sonarqube-scan-action@v5.3.1
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ steps.gen-prj-key.outputs.key }}
+            -Dsonar.projectName=${{ inputs.github_repo_slug }}
+            -Dsonar.links.homepage=https://github.com/${{ inputs.github_repo_slug }}
+            -Dsonar.sources=.
+            -Dsonar.tests=.
+            -Dsonar.exclusions=**/*_test.go,**/*.java
+            -Dsonar.test.inclusions=**/*_test.go
+            -Dsonar.verbose=false
+            -Dsonar.scanner.javaOpts=-Xmx8G
+            -Dsonar.python.version=3

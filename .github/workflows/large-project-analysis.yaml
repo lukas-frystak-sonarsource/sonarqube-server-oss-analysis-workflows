@@ -1,0 +1,20 @@
+name: Large Project SonarQube Analysis
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  sonar-scan:
+    uses: ./.github/workflows/sonar-scan-cli-oss-prj-reusable.yaml
+    secrets: inherit
+    strategy:
+      matrix:
+        repo:
+          - home-assistant/core
+          - kubernetes/autoscaler
+    with:
+      github_repo_slug: ${{ matrix.repo }}
